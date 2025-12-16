@@ -1,24 +1,22 @@
 import { Options } from 'k6/options'
-import { createHttpClient } from './core/http/httpClient'
 import { authenticate as jwtAuth } from './core/auth/jwt'
 import { authenticate as noAuth } from './core/auth/none'
+import { createHttpClient } from './core/http/httpClient'
 import { metricsCollector } from './core/metrics'
-import { runSimpleScenario } from './core/scenarios/simple'
 import { generateConsoleReport } from './core/reporter/console'
 import { buildReportData, generateJsonReport } from './core/reporter/json'
+import { runSimpleScenario } from './core/scenarios/simple'
 
 // Import project config and endpoints
-import config from './projects/sample-project/config'
-import { endpoints } from './projects/sample-project/endpoints'
+// 👉 เปลี่ยน project ที่นี่
+import config from './projects/tasks-api/config'
+import { endpoints } from './projects/tasks-api/endpoints'
 
 // K6 Options - from project config
 export const options: Options = {
   vus: config.load.vus,
   duration: config.load.duration,
 }
-
-// Global state
-let token: string | undefined
 
 /**
  * Setup function - runs once before the test
@@ -118,7 +116,7 @@ export function teardown(): void {
  * Handle K6 summary data
  * Use this for file output
  */
-export function handleSummary(data: unknown): Record<string, string> {
+export function handleSummary(_data: unknown): Record<string, string> {
   const summary = metricsCollector.getSummary()
   
   const reportData = buildReportData(

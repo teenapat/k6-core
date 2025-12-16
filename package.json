@@ -4,8 +4,8 @@
   "description": "K6 Central Load Testing Framework - TypeScript Edition",
   "main": "dist/main.js",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --outfile=dist/main.js --platform=neutral --format=esm",
-    "build:watch": "esbuild src/main.ts --bundle --outfile=dist/main.js --platform=neutral --format=esm --watch",
+    "build": "esbuild src/main.ts --bundle --outfile=dist/main.js --platform=neutral --format=esm --external:k6 --external:k6/*",
+    "build:watch": "esbuild src/main.ts --bundle --outfile=dist/main.js --platform=neutral --format=esm --external:k6 --external:k6/* --watch",
     "test:sample": "npm run build && k6 run dist/main.js",
     "test:sample:vus": "npm run build && k6 run --vus 10 --duration 30s dist/main.js",
     "typecheck": "tsc --noEmit"

@@ -1,10 +1,13 @@
 import { ReportData, SummaryMetrics } from './reporter.types'
 
 /**
- * Format number with comma separators
+ * Format number with comma separators (k6 compatible)
  */
 function formatNumber(num: number): string {
-  return num.toLocaleString('en-US')
+  // k6's goja engine doesn't support toLocaleString with locale
+  const parts = num.toString().split('.')
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return parts.join('.')
 }
 
 /**
