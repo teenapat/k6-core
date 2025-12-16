@@ -2,8 +2,6 @@ import { Options } from 'k6/options'
 import { authenticate as jwtAuth } from './core/auth/jwt'
 import { authenticate as noAuth } from './core/auth/none'
 import { createHttpClient } from './core/http/httpClient'
-import { metricsCollector } from './core/metrics'
-import { generateConsoleReport } from './core/reporter/console'
 import { buildReportData, generateJsonReport } from './core/reporter/json'
 import { runSimpleScenario } from './core/scenarios/simple'
 
@@ -67,48 +65,38 @@ export default function(data: { token?: string }): void {
 
 /**
  * Teardown function - runs once after the test
- * Generates reports
+ * Note: Reports are generated in handleSummary() which has access to k6 metrics
  */
 export function teardown(): void {
   console.log('\n📊 Generating reports...\n')
+}
 
-  // Get metrics summary
-  const summary = metricsCollector.getSummary()
+/**
+ * K6 Summary Data types
+ */
+interface K6Metric {
+  values: {
+    count?: number
+    rate?: number
+    avg?: number
+    med?: number
+    'p(95)'?: number
+    'p(99)'?: number
+    passes?: number
+    fails?: number
+  }
+}
 
-  // Build report data
-  const reportData = buildReportData(
-    config.name,
-    'simple', // scenario name
-    config.load.vus,
-    config.load.duration,
-    {
-      requests: summary.requests,
-      rps: summary.rps,
-      errorRate: summary.errorRate,
-    },
-    {
-      avg: summary.avgLatency,
-      p95: summary.p95Latency,
-      p99: summary.p99Latency,
-    }
-  )
-
-  // Generate reports based on config
-  if (config.report?.output) {
-    for (const output of config.report.output) {
-      if (output.type === 'console') {
-        generateConsoleReport(reportData)
-      } else if (output.type === 'json') {
-        const jsonReport = generateJsonReport(reportData)
-        console.log('📄 JSON Report:')
-        console.log(jsonReport)
-        // Note: K6 doesn't support file writing in teardown
-        // Use handleSummary for file output
-      }
-    }
-  } else {
-    // Default: console report
-    generateConsoleReport(reportData)
+interface K6SummaryData {
+  metrics: {
+    http_reqs?: K6Metric
+    http_req_duration?: K6Metric
+    checks?: K6Metric
+    iterations?: K6Metric
+    [key: string]: K6Metric | undefined
+  }
+  state: {
+    testRunDurationMs: number
   }
 }
 
@@ -116,31 +104,50 @@ export function teardown(): void {
  * Handle K6 summary data
  * Use this for file output
  */
-export function handleSummary(_data: unknown): Record<string, string> {
-  const summary = metricsCollector.getSummary()
-  
+export function handleSummary(data: K6SummaryData): Record<string, string> {
+  // Extract metrics from k6's built-in data
+  const httpReqs = data.metrics.http_reqs?.values.count || 0
+  const duration = data.metrics.http_req_duration?.values || {}
+  const checks = data.metrics.checks?.values || {}
+  const testDurationSec = data.state.testRunDurationMs / 1000
+
+  // Calculate RPS from actual data
+  const rps = testDurationSec > 0 
+    ? Math.round((httpReqs / testDurationSec) * 100) / 100 
+    : 0
+
+  // Calculate error rate from checks (if any)
+  const totalChecks = (checks.passes || 0) + (checks.fails || 0)
+  const errorRate = totalChecks > 0
+    ? Math.round(((checks.fails || 0) / totalChecks) * 10000) / 100
+    : 0
+
   const reportData = buildReportData(
     config.name,
     'simple',
     config.load.vus,
     config.load.duration,
     {
-      requests: summary.requests,
-      rps: summary.rps,
-      errorRate: summary.errorRate,
+      requests: httpReqs,
+      rps,
+      errorRate,
     },
     {
-      avg: summary.avgLatency,
-      p95: summary.p95Latency,
-      p99: summary.p99Latency,
+      avg: Math.round(duration.avg || 0),
+      p95: Math.round(duration['p(95)'] || 0),
+      p99: Math.round(duration['p(99)'] || 0),
     }
   )
 
   const outputs: Record<string, string> = {}
 
-  // Check if JSON output is configured
+  // Generate console report
   if (config.report?.output) {
     for (const output of config.report.output) {
+      if (output.type === 'console') {
+        // Build console output string
+        outputs['stdout'] = buildConsoleOutput(reportData)
+      }
       if (output.type === 'json' && output.path) {
         const filename = `${output.path}/${config.name}-report.json`
         outputs[filename] = generateJsonReport(reportData)
@@ -148,9 +155,53 @@ export function handleSummary(_data: unknown): Record<string, string> {
     }
   }
 
-  // Always output to stdout
-  outputs['stdout'] = '\n'
+  // Ensure stdout has something
+  if (!outputs['stdout']) {
+    outputs['stdout'] = buildConsoleOutput(reportData)
+  }
 
   return outputs
+}
+
+/**
+ * Build console output string for handleSummary
+ */
+function buildConsoleOutput(data: ReturnType<typeof buildReportData>): string {
+  const line = (char: string, len: number = 60) => char.repeat(len)
+  const fmt = (n: number) => {
+    const parts = n.toString().split('.')
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    return parts.join('.')
+  }
+
+  return `
+${line('═')}
+  📊 K6 Load Test Report
+${line('═')}
+
+  Project:   ${data.project}
+  Scenario:  ${data.scenario}
+  VUs:       ${data.load.vus}
+  Duration:  ${data.load.duration}
+  Time:      ${data.timestamp}
+
+${line('─')}
+  📈 Summary
+${line('─')}
+  Total Requests:  ${fmt(data.summary.requests)}
+  RPS:             ${data.summary.rps}
+  Error Rate:      ${data.summary.errorRate}%
+
+${line('─')}
+  ⏱️  Latency
+${line('─')}
+  Avg:             ${data.latency.avg}ms
+  P95:             ${data.latency.p95}ms
+  P99:             ${data.latency.p99}ms
+
+${line('─')}
+  Status: ${data.summary.errorRate > 5 ? '❌ FAILED' : data.summary.errorRate > 1 ? '⚠️  WARNING' : '✅ PASSED'}
+${line('═')}
+`
 }
 
