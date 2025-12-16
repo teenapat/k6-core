@@ -4,8 +4,8 @@ const config: ProjectConfig = {
   name: 'tasks-api',
   baseURL: 'http://localhost:3000',
   load: {
-    vus: 10,          // จำนวน virtual users
-    duration: '30s',  // ระยะเวลาทดสอบ
+    vus: 15,          // จำนวน virtual users
+    duration: '60s',  // ระยะเวลาทดสอบ
   },
   auth: {
     type: 'none',     // ไม่ต้อง auth
@@ -14,6 +14,7 @@ const config: ProjectConfig = {
     output: [
       { type: 'console' },
       { type: 'json', path: './reports' },
+      { type: 'html', path: './reports' },
     ],
   },
 }

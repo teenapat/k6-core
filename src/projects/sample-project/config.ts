@@ -29,6 +29,7 @@ const config: ProjectConfig = {
     output: [
       { type: 'console' },
       { type: 'json', path: './reports' },
+      { type: 'html', path: './reports' },
     ],
   },
 }

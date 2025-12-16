@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K6 Load Test Report - tasks-api</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-green: #22c55e;
+      --accent-yellow: #eab308;
+      --accent-red: #ef4444;
+      --accent-purple: #a855f7;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .header-title svg {
+      color: var(--accent-purple);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    /* Status Banner */
+    .status-banner {
+      background: #22c55e15;
+      border: 2px solid #22c55e;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .status-banner svg {
+      color: #22c55e;
+      flex-shrink: 0;
+    }
+
+    .status-banner .status {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #22c55e;
+    }
+
+    /* Info Cards */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .info-card {
+      background: var(--bg-secondary);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .info-card .label {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-card .value {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    /* Metrics Section */
+    .section {
+      background: var(--bg-secondary);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-title svg {
+      color: var(--accent-blue);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .metric {
+      text-align: center;
+    }
+
+    .metric .value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+    }
+
+    .metric .value.success {
+      color: var(--accent-green);
+    }
+
+    .metric .value.warning {
+      color: var(--accent-yellow);
+    }
+
+    .metric .value.danger {
+      color: var(--accent-red);
+    }
+
+    .metric .label {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+
+    .metric .unit {
+      font-size: 1rem;
+      font-weight: 400;
+      opacity: 0.7;
+    }
+
+    /* Latency Bars */
+    .latency-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .latency-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .latency-label {
+      width: 60px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .latency-bar-container {
+      flex: 1;
+      height: 2rem;
+      background: var(--bg-card);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .latency-bar {
+      height: 100%;
+      border-radius: 0.5rem;
+      transition: width 0.5s ease;
+    }
+
+    .latency-bar.avg {
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    }
+
+    .latency-bar.p95 {
+      background: linear-gradient(90deg, var(--accent-yellow), #f97316);
+    }
+
+    .latency-bar.p99 {
+      background: linear-gradient(90deg, var(--accent-red), #dc2626);
+    }
+
+    .latency-value {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--bg-card);
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .footer-brand svg {
+      color: var(--accent-purple);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+
+      .header h1 {
+        font-size: 1.75rem;
+      }
+
+      .metric .value {
+        font-size: 1.75rem;
+      }
+
+      .status-banner .status {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        <h1>K6 Load Test Report</h1>
+      </div>
+      <p class="subtitle">Performance Analysis for tasks-api</p>
+    </header>
+
+    <div class="status-banner">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      <div class="status">PASSED</div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="label">Project</div>
+        <div class="value">tasks-api</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Scenario</div>
+        <div class="value">simple</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Virtual Users</div>
+        <div class="value">15</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Duration</div>
+        <div class="value">60s</div>
+      </div>
+    </div>
+
+    <section class="section">
+      <h2 class="section-title"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Summary Metrics</h2>
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="value">900</div>
+          <div class="label">Total Requests</div>
+        </div>
+        <div class="metric">
+          <div class="value">14.96<span class="unit">/s</span></div>
+          <div class="label">Requests Per Second</div>
+        </div>
+        <div class="metric">
+          <div class="value success">0<span class="unit">%</span></div>
+          <div class="label">Error Rate</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Response Time</h2>
+      <div class="latency-item">
+        <span class="latency-label">Avg</span>
+        <div class="latency-bar-container">
+          <div class="latency-bar avg" style="width: 100%"></div>
+          <span class="latency-value">1ms</span>
+        </div>
+      </div>
+      <div class="latency-item">
+        <span class="latency-label">P95</span>
+        <div class="latency-bar-container">
+          <div class="latency-bar p95" style="width: 100%"></div>
+          <span class="latency-value">6ms</span>
+        </div>
+      </div>
+      <div class="latency-item">
+        <span class="latency-label">P99</span>
+        <div class="latency-bar-container">
+          <div class="latency-bar p99" style="width: 100%"></div>
+          <span class="latency-value">0ms</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>Generated at 2025-12-16T15:14:15.812Z</p>
+      <div class="footer-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        <span>K6 Load Testing Framework</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

@@ -2,13 +2,14 @@ import { Options } from 'k6/options'
 import { authenticate as jwtAuth } from './core/auth/jwt'
 import { authenticate as noAuth } from './core/auth/none'
 import { createHttpClient } from './core/http/httpClient'
+import { generateHtmlReport } from './core/reporter/html'
 import { buildReportData, generateJsonReport } from './core/reporter/json'
 import { runSimpleScenario } from './core/scenarios/simple'
 
 // Import project config and endpoints
 // 👉 เปลี่ยน project ที่นี่
-import config from './projects/tasks-api/config'
-import { endpoints } from './projects/tasks-api/endpoints'
+import config from './projects/products-api/config'
+import { endpoints } from './projects/products-api/endpoints'
 
 // K6 Options - from project config
 export const options: Options = {
@@ -141,7 +142,7 @@ export function handleSummary(data: K6SummaryData): Record<string, string> {
 
   const outputs: Record<string, string> = {}
 
-  // Generate console report
+  // Generate reports based on config
   if (config.report?.output) {
     for (const output of config.report.output) {
       if (output.type === 'console') {
@@ -151,6 +152,10 @@ export function handleSummary(data: K6SummaryData): Record<string, string> {
       if (output.type === 'json' && output.path) {
         const filename = `${output.path}/${config.name}-report.json`
         outputs[filename] = generateJsonReport(reportData)
+      }
+      if (output.type === 'html' && output.path) {
+        const filename = `${output.path}/${config.name}-report.html`
+        outputs[filename] = generateHtmlReport(reportData)
       }
     }
   }
