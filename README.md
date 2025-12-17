@@ -2,7 +2,7 @@
 
 > **TypeScript Edition** — Type-safe, Reusable, Production Ready
 
-## 🚀 Quick Start
+## ⚡ Quick Start
 
 ```bash
 # 1. Install dependencies
@@ -11,7 +11,7 @@ npm install
 # 2. Build and run load test
 npm run test:sample
 
-# 3. หรือรันแบบกำหนด vus เอง
+# 3. Or run with custom VUs
 npm run test:sample:vus
 ```
 
@@ -19,23 +19,23 @@ npm run test:sample:vus
 
 ## Core Idea
 
-สร้าง **K6 Core Framework กลาง** ที่สามารถใช้ Load Test กับ API ใดก็ได้  
-โดยไม่ต้องเขียน K6 script ใหม่ทุกครั้ง
+Build a **centralized K6 Core Framework** that can load test any API  
+without having to write K6 scripts from scratch every time.
 
-แนวคิดหลักคือแยกออกเป็น 2 ส่วนชัดเจน:
+The main concept is to clearly separate into 2 parts:
 
 - **Core Engine**  
-  Logic กลางที่ reusable (auth, scenario, metrics, http wrapper, report)
+  Reusable central logic (auth, scenario, metrics, http wrapper, report)
 
 - **Project Configuration**  
-  สิ่งที่เปลี่ยนไปตามแต่ละ API (endpoint, payload, load profile)
+  Things that change for each API (endpoint, payload, load profile)
 
-> เป้าหมายคือ:  
+> Goal:  
 > clone → config → run → get report
 
 ---
 
-## 📁 Project Structure
+## 📂 Project Structure
 
 ```
 k6-core/
@@ -75,33 +75,33 @@ k6-core/
 
 ## Why This Exists
 
-ปัญหาที่พบจากการใช้ K6 แบบเดิม:
+Problems encountered with traditional K6 usage:
 
-- Script ซ้ำกันหลายโปรเจ็ค
-- ไม่มี report มาตรฐานเดียวกัน
-- ทีมอ่านผลลัพธ์ไม่ตรงกัน
-- ต้อง parse output เองทุกครั้ง
+- Duplicate scripts across multiple projects
+- No standardized report format
+- Teams interpret results differently
+- Have to parse output manually every time
 
-Framework นี้ถูกออกแบบมาเพื่อ:
+This framework is designed to:
 
-- ทำให้ load test มี **output ที่อ่านง่าย**
-- ใช้ report format เดียวกันทุก API
-- เก็บผลลัพธ์เพื่อเทียบย้อนหลังได้
+- Make load test **output easy to read**
+- Use the same report format for all APIs
+- Store results for historical comparison
 
 ---
 
-## 💡 Why TypeScript?
+## 💎 Why TypeScript?
 
 | Benefit | Description |
 |---------|-------------|
-| **Auto-complete** | IDE แนะนำ config options ให้อัตโนมัติ |
-| **Type Safety** | กัน config พังตั้งแต่ compile time |
-| **Refactor Friendly** | เปลี่ยน type แล้วรู้ทันทีว่าต้องแก้ตรงไหน |
-| **Team Collaboration** | ทีมใช้ต่อได้ง่าย เพราะ type บอกทุกอย่าง |
+| **Auto-complete** | IDE suggests config options automatically |
+| **Type Safety** | Catch config errors at compile time |
+| **Refactor Friendly** | Change a type and instantly know what needs updating |
+| **Team Collaboration** | Easy for teams to use because types document everything |
 
 ---
 
-## 📝 สร้าง Project ใหม่
+## 📄 Create New Project
 
 ### 1. Copy sample project
 
@@ -109,7 +109,7 @@ Framework นี้ถูกออกแบบมาเพื่อ:
 cp -r src/projects/sample-project src/projects/my-api
 ```
 
-### 2. แก้ไข `config.ts`
+### 2. Edit `config.ts`
 
 ```typescript
 // src/projects/my-api/config.ts
@@ -142,7 +142,7 @@ const config: ProjectConfig = {
 export default config
 ```
 
-### 3. กำหนด `endpoints.ts`
+### 3. Define `endpoints.ts`
 
 ```typescript
 // src/projects/my-api/endpoints.ts
@@ -166,7 +166,7 @@ export const endpoints: EndpointConfig[] = [
 ]
 ```
 
-### 4. อัพเดต `main.ts` import
+### 4. Update `main.ts` import
 
 ```typescript
 // src/main.ts
@@ -186,52 +186,52 @@ npm run test:sample
 
 ### 1. Project-based Configuration
 
-กำหนดผ่าน config:
+Configure via config:
 
 - `baseURL` — API base URL
-- `load` — VUs และ duration
-- `auth` — JWT หรือ No Auth
-- `endpoints` — API endpoints ที่จะทดสอบ
+- `load` — VUs and duration
+- `auth` — JWT or No Auth
+- `endpoints` — API endpoints to test
 - `report` — Console / JSON output
 
 ### 2. Authentication Support
 
 | Type | Description |
 |------|-------------|
-| `none` | ไม่ต้อง auth |
-| `jwt` | Login ครั้งเดียวใน setup แล้ว inject token ทุก request |
+| `none` | No authentication required |
+| `jwt` | Login once in setup then inject token for every request |
 
 ### 3. HTTP Wrapper
 
 - Wrap http methods (GET, POST, PUT, DELETE)
 - Auto-inject auth header
-- Auto-collect metrics ทุก request
+- Auto-collect metrics for every request
 
 ### 4. Scenario Runner
 
 | Scenario | Use Case |
 |----------|----------|
-| `simple` | เรียก endpoints ตามลำดับ ซ้ำๆ |
-| `flow` | จำลอง user journey (login → browse → purchase) |
+| `simple` | Call endpoints sequentially, repeatedly |
+| `flow` | Simulate user journey (login → browse → purchase) |
 
 ---
 
-## 📊 Reporting
+## 📑 Reporting
 
-### Report ตอบคำถาม 3 ข้อ:
+### Reports answer 3 questions:
 
-1. **ระบบรับไหวไหม** → RPS, Error Rate
-2. **ช้าตรงไหน** → Latency (avg, p95, p99)
-3. **Error เกิดหรือไม่** → Error Rate %
+1. **Can the system handle the load?** → RPS, Error Rate
+2. **Where is it slow?** → Latency (avg, p95, p99)
+3. **Are there errors?** → Error Rate %
 
 ### Metrics
 
 | Metric | Description |
 |--------|-------------|
-| Total Requests | จำนวน request ทั้งหมด |
+| Total Requests | Total number of requests |
 | RPS | Requests per Second |
-| Error Rate | % ของ request ที่ fail |
-| Avg Latency | Response time เฉลี่ย |
+| Error Rate | % of failed requests |
+| Avg Latency | Average response time |
 | P95 Latency | 95th percentile |
 | P99 Latency | 99th percentile |
 
@@ -241,7 +241,7 @@ npm run test:sample
 
 ```
 ════════════════════════════════════════════════════════════
-  📊 K6 Load Test Report
+  ▸ K6 Load Test Report
 ════════════════════════════════════════════════════════════
 
   Project:   sample-project
@@ -250,14 +250,14 @@ npm run test:sample
   Duration:  2m
 
 ────────────────────────────────────────────────────────────
-  📈 Summary
+  ▸ Summary
 ────────────────────────────────────────────────────────────
   Total Requests:  12,000
   RPS:             100
   Error Rate:      0.3%
 
 ────────────────────────────────────────────────────────────
-  ⏱️  Latency
+  ▸ Latency
 ────────────────────────────────────────────────────────────
   Avg:             180ms
   P95:             420ms
@@ -294,9 +294,9 @@ npm run test:sample
 
 ---
 
-## 📏 วิธีอ่านและวัดผล Load Test
+## 📐 How to Read and Measure Load Test Results
 
-### 🎯 Report ตัวอย่าง
+### ▶ Sample Report
 
 ```json
 {
@@ -322,91 +322,91 @@ npm run test:sample
 
 ---
 
-### 📋 ความหมายของแต่ละ Field
+### ◆ Field Definitions
 
-#### ข้อมูลพื้นฐาน
+#### Basic Information
 
-| Field | ความหมาย | ตัวอย่าง |
-|-------|----------|----------|
-| `project` | ชื่อ project ที่ทดสอบ | `"tasks-api"` |
-| `scenario` | รูปแบบการทดสอบ | `"simple"` = ยิงทุก endpoint ตามลำดับ |
-| `timestamp` | เวลาที่รันเสร็จ (UTC) | `"2025-12-16T15:03:53.490Z"` |
+| Field | Meaning | Example |
+|-------|---------|---------|
+| `project` | Project name being tested | `"tasks-api"` |
+| `scenario` | Test pattern | `"simple"` = hit all endpoints sequentially |
+| `timestamp` | Completion time (UTC) | `"2025-12-16T15:03:53.490Z"` |
 
 #### Load Configuration
 
-| Field | ความหมาย | ตัวอย่าง |
-|-------|----------|----------|
-| `vus` | **Virtual Users** - จำนวนผู้ใช้จำลองที่ยิง request พร้อมกัน | `15` = 15 คนยิงพร้อมกัน |
-| `duration` | ระยะเวลาทดสอบ | `"60s"` = 1 นาที |
+| Field | Meaning | Example |
+|-------|---------|---------|
+| `vus` | **Virtual Users** - Number of simulated users sending requests concurrently | `15` = 15 users hitting simultaneously |
+| `duration` | Test duration | `"60s"` = 1 minute |
 
 #### Summary Metrics
 
-| Field | ความหมาย | วิธีคิด |
-|-------|----------|---------|
-| `requests` | จำนวน HTTP requests ทั้งหมด | นับทุก request ที่ส่งออกไป |
-| `rps` | **Requests Per Second** | `requests ÷ duration` (เช่น 900 ÷ 60 = 15 rps) |
-| `errorRate` | % ของ request ที่ fail | `(failed ÷ total) × 100` |
+| Field | Meaning | Calculation |
+|-------|---------|-------------|
+| `requests` | Total HTTP requests | Count all requests sent |
+| `rps` | **Requests Per Second** | `requests ÷ duration` (e.g., 900 ÷ 60 = 15 rps) |
+| `errorRate` | % of failed requests | `(failed ÷ total) × 100` |
 
-#### Latency Metrics (หน่วย: milliseconds)
+#### Latency Metrics (unit: milliseconds)
 
-| Field | ความหมาย | อธิบาย |
-|-------|----------|--------|
-| `avg` | **Average** - เวลาตอบกลับเฉลี่ย | ค่าเฉลี่ยของทุก request |
-| `p95` | **95th Percentile** | 95% ของ requests ตอบภายในเวลานี้ |
-| `p99` | **99th Percentile** | 99% ของ requests ตอบภายในเวลานี้ |
+| Field | Meaning | Explanation |
+|-------|---------|-------------|
+| `avg` | **Average** - Mean response time | Average of all requests |
+| `p95` | **95th Percentile** | 95% of requests respond within this time |
+| `p99` | **99th Percentile** | 99% of requests respond within this time |
 
 ---
 
-### 📊 Percentile คืออะไร?
+### ◆ What is Percentile?
 
 ```
-สมมุติมี 100 requests เรียงตาม latency:
+Assume 100 requests sorted by latency:
 
-Request 1-95:    1-4ms   ← P95 = 4ms (95% ตอบได้ภายใน 4ms)
+Request 1-95:    1-4ms   ← P95 = 4ms (95% respond within 4ms)
 Request 96-99:   5-10ms  ← P99 = 10ms
-Request 100:     50ms    ← outlier (ช้ามาก)
+Request 100:     50ms    ← outlier (very slow)
 
-🔑 ทำไมต้องดู Percentile?
-   - Average รวม outlier → อาจเห็นภาพเบี้ยว
-   - P95/P99 บอกว่า "คนส่วนใหญ่" ได้ประสบการณ์ยังไง
+► Why look at Percentile?
+   - Average includes outliers → may give skewed picture
+   - P95/P99 tells you what "most users" experience
 ```
 
 ---
 
-### ✅ เกณฑ์การวัดผล
+### ● Measurement Criteria
 
 #### Error Rate
 
-| Error Rate | สถานะ | Action |
+| Error Rate | Status | Action |
 |------------|--------|--------|
-| **0-1%** | ✅ ดีมาก | ผ่าน! |
-| **1-5%** | ⚠️ ควรตรวจสอบ | หาสาเหตุ error |
-| **>5%** | ❌ มีปัญหา | ต้องแก้ไขด่วน |
+| **0-1%** | ✅ Excellent | Pass! |
+| **1-5%** | ⚠️ Warning | Investigate error causes |
+| **>5%** | ❌ Problem | Needs immediate fix |
 
 #### Latency (Response Time)
 
-| Latency | ความเร็ว | เหมาะกับ |
-|---------|----------|----------|
-| **<50ms** | 🚀 เร็วมาก | Internal APIs, Microservices |
-| **50-200ms** | ✅ ดี | REST APIs ทั่วไป |
-| **200-500ms** | ⚠️ พอใช้ได้ | APIs ที่ต้อง query DB หนัก |
-| **>500ms** | ❌ ช้าเกินไป | ควร optimize |
+| Latency | Speed | Suitable For |
+|---------|-------|--------------|
+| **<50ms** | ✅ Very Fast | Internal APIs, Microservices |
+| **50-200ms** | ✅ Good | General REST APIs |
+| **200-500ms** | ⚠️ Acceptable | APIs with heavy DB queries |
+| **>500ms** | ❌ Too Slow | Should optimize |
 
 #### RPS (Throughput)
 
-| สถานการณ์ | คาดหวัง RPS |
-|-----------|-------------|
-| API ธรรมดา | 100-500 rps |
+| Scenario | Expected RPS |
+|----------|--------------|
+| Standard API | 100-500 rps |
 | High-performance API | 1,000+ rps |
 | Real-time API | 5,000+ rps |
 
-> 💡 **หมายเหตุ:** RPS ขึ้นอยู่กับหลายปัจจัย เช่น server specs, network, database
+> **Note:** RPS depends on many factors such as server specs, network, database
 
 ---
 
-### 🏆 ตัวอย่างการวิเคราะห์
+### ★ Analysis Examples
 
-#### ✅ ผลดี
+#### ✅ Good Results
 
 ```json
 {
@@ -417,12 +417,12 @@ Request 100:     50ms    ← outlier (ช้ามาก)
 }
 ```
 
-**วิเคราะห์:**
-- ❌ Error = 0% → ไม่มี error เลย ✅
-- ⚡ Latency avg 1ms, p95 4ms → เร็วมาก ✅
-- 📈 สามารถเพิ่ม VUs ได้อีกเพื่อหา breaking point
+**Analysis:**
+- Error = 0% → No errors at all ✅
+- Latency avg 1ms, p95 4ms → Very fast ✅
+- Can increase VUs to find breaking point
 
-#### ⚠️ ผลต้องระวัง
+#### ⚠️ Warning Results
 
 ```json
 {
@@ -433,12 +433,12 @@ Request 100:     50ms    ← outlier (ช้ามาก)
 }
 ```
 
-**วิเคราะห์:**
-- ⚠️ Error 2.5% → มี error บางส่วน ตรวจสอบ log
-- ⚠️ P95 = 800ms → บาง request ช้ามาก
-- 🔍 ควรดู endpoint ไหนที่ช้า
+**Analysis:**
+- Error 2.5% → Some errors, check logs ⚠️
+- P95 = 800ms → Some requests are very slow ⚠️
+- Should investigate which endpoint is slow
 
-#### ❌ ผลไม่ผ่าน
+#### ❌ Failed Results
 
 ```json
 {
@@ -449,25 +449,25 @@ Request 100:     50ms    ← outlier (ช้ามาก)
 }
 ```
 
-**วิเคราะห์:**
-- ❌ Error 15% → มี error เยอะมาก!
-- ❌ Latency สูงมาก (avg 1.2 วินาที)
-- 🚨 **ต้องแก้ไข:** ลด VUs หรือ optimize API
+**Analysis:**
+- Error 15% → Too many errors! ❌
+- Latency very high (avg 1.2 seconds) ❌
+- **Action needed:** Reduce VUs or optimize API
 
 ---
 
-### 📈 การหา Breaking Point
+### ▲ Finding the Breaking Point
 
-วิธีหา capacity สูงสุดของ API:
+How to find maximum API capacity:
 
 ```
-1. เริ่มจาก VUs น้อยๆ (เช่น 10)
-2. เพิ่ม VUs ทีละ 2x (10 → 20 → 40 → 80)
-3. สังเกต metrics ทุกรอบ
-4. หยุดเมื่อ:
+1. Start with low VUs (e.g., 10)
+2. Increase VUs by 2x (10 → 20 → 40 → 80)
+3. Observe metrics each round
+4. Stop when:
    - Error rate > 5%
-   - P95 latency > SLA ที่กำหนด
-   - RPS ไม่เพิ่มขึ้นแม้เพิ่ม VUs (saturated)
+   - P95 latency > defined SLA
+   - RPS doesn't increase despite more VUs (saturated)
 ```
 
 ```
@@ -481,19 +481,19 @@ P95:    20ms    25ms     80ms    500ms   2000ms ← degraded!
 
 ---
 
-## 🛠️ Available Scripts
+## ⚙ Available Scripts
 
 | Script | Description |
 |--------|-------------|
 | `npm run build` | Build TypeScript → JavaScript |
-| `npm run build:watch` | Build แบบ watch mode |
+| `npm run build:watch` | Build in watch mode |
 | `npm run test:sample` | Build + Run K6 test |
 | `npm run test:sample:vus` | Run with custom VUs |
 | `npm run typecheck` | Type check only (no emit) |
 
 ---
 
-## 📌 Requirements
+## ☐ Requirements
 
 - **Node.js** >= 18
 - **K6** installed ([Install K6](https://k6.io/docs/get-started/installation/))
@@ -505,20 +505,20 @@ P95:    20ms    25ms     80ms    500ms   2000ms ← degraded!
 
 ### Primary Goals
 
-- ใช้ K6 ชุดเดียว ทดสอบ API ได้หลายโปรเจ็ค
-- เปลี่ยนพฤติกรรมการทดสอบผ่าน config
-- ได้ **report ที่สรุปผลชัดเจน**
+- Use single K6 setup to test multiple API projects
+- Change test behavior through config
+- Get **clear summary reports**
 
 ### Secondary Goals
 
-- Report อ่านได้ทั้ง developer และ non-dev
-- Export เป็น file (JSON / HTML)
-- ต่อ CI/CD ได้ง่าย
+- Reports readable by both developers and non-devs
+- Export to file (JSON / HTML)
+- Easy CI/CD integration
 
 ### Non-Goals (MVP)
 
 - Real-time dashboard
-- Visualization ขั้นสูง
+- Advanced visualization
 - Distributed reporting
 
 ---
