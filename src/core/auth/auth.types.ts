@@ -1,4 +1,4 @@
-export type AuthType = 'none' | 'jwt';
+export type AuthType = 'none' | 'jwt' | 'apiKey' | 'basic';
 
 // ========== Auth Context ==========
 /**
@@ -103,7 +103,51 @@ export interface NoneAuthConfig {
   type: 'none';
 }
 
-export type AuthConfig = JwtAuthConfig | NoneAuthConfig;
+// ========== API Key Authentication ==========
+/**
+ * API Key authentication config
+ * Supports sending key in header or query parameter
+ *
+ * @example
+ * // Header: X-API-Key: abc123
+ * {
+ *   type: 'apiKey',
+ *   key: 'X-API-Key',
+ *   value: 'abc123',
+ *   in: 'header'
+ * }
+ *
+ * @example
+ * // Query: ?api_key=abc123
+ * {
+ *   type: 'apiKey',
+ *   key: 'api_key',
+ *   value: 'abc123',
+ *   in: 'query'
+ * }
+ */
+export interface ApiKeyAuthConfig {
+  type: 'apiKey';
+  /** Key name (header name or query param name) */
+  key: string;
+  /** API key value */
+  value: string;
+  /** Where to send the key */
+  in: 'header' | 'query';
+}
+
+// ========== Basic Authentication ==========
+/**
+ * Basic HTTP authentication
+ * Sends Authorization: Basic base64(username:password)
+ */
+export interface BasicAuthConfig {
+  type: 'basic';
+  username: string;
+  password: string;
+}
+
+export type AuthConfig = JwtAuthConfig | NoneAuthConfig | ApiKeyAuthConfig | BasicAuthConfig;
 
 // ========== Auth Result ==========
 export interface AuthResult {

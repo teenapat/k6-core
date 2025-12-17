@@ -1,13 +1,15 @@
 import { Options } from 'k6/options'
 import { authenticate as jwtAuth } from './core/auth/jwt'
 import { authenticate as noAuth } from './core/auth/none'
+import { authenticate as apiKeyAuth } from './core/auth/apiKey'
+import { authenticate as basicAuth } from './core/auth/basic'
 import { createHttpClient } from './core/http/httpClient'
 import { generateHtmlReport } from './core/reporter/html'
 import { buildReportData, generateJsonReport } from './core/reporter/json'
 import { runSimpleScenario } from './core/scenarios/simple'
 
 // Import project config and endpoints
-// 👉 เปลี่ยน project ที่นี่
+// 👉 Change project here
 import config from './projects/products-api/config'
 import { endpoints } from './projects/products-api/endpoints'
 
@@ -27,20 +29,53 @@ export function setup(): { token?: string } {
 
   // Handle authentication
   if (config.auth) {
-    if (config.auth.type === 'jwt') {
-      console.log('🔐 Authenticating with JWT...')
-      const authResult = jwtAuth(config.baseURL, config.auth)
-      
-      if (!authResult.success) {
-        console.error(`❌ Authentication failed: ${authResult.error}`)
-        throw new Error(`Authentication failed: ${authResult.error}`)
+    switch (config.auth.type) {
+      case 'jwt': {
+        console.log('🔐 Authenticating with JWT...')
+        const jwtResult = jwtAuth(config.baseURL, config.auth)
+        
+        if (!jwtResult.success) {
+          console.error(`❌ Authentication failed: ${jwtResult.error}`)
+          throw new Error(`Authentication failed: ${jwtResult.error}`)
+        }
+        
+        console.log('✅ JWT Authentication successful\n')
+        return { token: jwtResult.token }
       }
-      
-      console.log('✅ Authentication successful\n')
-      return { token: authResult.token }
-    } else if (config.auth.type === 'none') {
-      const authResult = noAuth()
-      return { token: authResult.token }
+
+      case 'apiKey': {
+        console.log('🔑 Using API Key authentication...')
+        const apiKeyResult = apiKeyAuth(config.auth)
+        
+        if (!apiKeyResult.success) {
+          console.error(`❌ API Key auth failed: ${apiKeyResult.error}`)
+          throw new Error(`API Key auth failed: ${apiKeyResult.error}`)
+        }
+        
+        console.log(`✅ API Key configured: ${config.auth.key} in ${config.auth.in}\n`)
+        return { token: apiKeyResult.token }
+      }
+
+      case 'basic': {
+        console.log('🔒 Using Basic authentication...')
+        const basicResult = basicAuth(config.auth)
+        
+        if (!basicResult.success) {
+          console.error(`❌ Basic auth failed: ${basicResult.error}`)
+          throw new Error(`Basic auth failed: ${basicResult.error}`)
+        }
+        
+        console.log(`✅ Basic Auth configured for user: ${config.auth.username}\n`)
+        return { token: basicResult.token }
+      }
+
+      case 'none': {
+        const noneResult = noAuth()
+        return { token: noneResult.token }
+      }
+
+      default:
+        console.log('⚠️ Unknown auth type, proceeding without auth')
     }
   }
 

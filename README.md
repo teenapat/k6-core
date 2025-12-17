@@ -42,10 +42,12 @@ k6-core/
 ├── src/
 │   ├── core/                       # Core Engine (reusable)
 │   │   ├── http/
-│   │   │   └── httpClient.ts       # HTTP wrapper + auth injection
+│   │   │   └── httpClient.ts       # HTTP wrapper + auth injection + context
 │   │   ├── auth/
 │   │   │   ├── auth.types.ts       # Auth type definitions
-│   │   │   ├── jwt.ts              # JWT authentication
+│   │   │   ├── jwt.ts              # JWT authentication (single & multi-step)
+│   │   │   ├── apiKey.ts           # API Key authentication
+│   │   │   ├── basic.ts            # Basic HTTP authentication
 │   │   │   └── none.ts             # No auth handler
 │   │   ├── scenarios/
 │   │   │   ├── simple.ts           # Simple sequential scenario
@@ -55,12 +57,13 @@ k6-core/
 │   │   │   ├── console.ts          # Console report output
 │   │   │   └── json.ts             # JSON report generator
 │   │   ├── metrics.ts              # Metrics collector
-│   │   └── types.ts                # Core type definitions
+│   │   └── types.ts                # Core type definitions + RequestContext
 │   │
 │   ├── projects/                   # Project Configurations
-│   │   └── sample-project/
-│   │       ├── config.ts           # Project config
-│   │       └── endpoints.ts        # API endpoints
+│   │   ├── sample-project/
+│   │   ├── api-key-example/        # API Key auth + dynamic URLs
+│   │   ├── crud-flow-example/      # Request chaining example
+│   │   └── otp-api-example/        # Multi-step JWT (2FA/OTP)
 │   │
 │   └── main.ts                     # Entry point
 │
@@ -146,14 +149,16 @@ export default config
 
 ```typescript
 // src/projects/my-api/endpoints.ts
-import { EndpointConfig } from '../../core/types'
+import { EndpointConfig, RequestContext } from '../../core/types'
 
 export const endpoints: EndpointConfig[] = [
+  // Simple GET
   {
     name: 'Get Products',
     method: 'GET',
     url: '/api/products',
   },
+  // POST with body
   {
     name: 'Create Order',
     method: 'POST',
@@ -162,6 +167,16 @@ export const endpoints: EndpointConfig[] = [
       productId: 1,
       quantity: 2,
     }),
+    extract: { orderId: 'data.id' },  // Save for next request
+  },
+  // Use extracted value
+  {
+    name: 'Get Order',
+    method: 'GET',
+    url: '/api/orders/{orderId}',
+    pathParams: {
+      orderId: (ctx: RequestContext) => String(ctx.orderId),
+    },
   },
 ]
 ```
@@ -190,22 +205,78 @@ Configure via config:
 
 - `baseURL` — API base URL
 - `load` — VUs and duration
-- `auth` — JWT or No Auth
+- `auth` — JWT, API Key, Basic, or None
 - `endpoints` — API endpoints to test
-- `report` — Console / JSON output
+- `report` — Console / JSON / HTML output
 
 ### 2. Authentication Support
 
 | Type | Description |
 |------|-------------|
 | `none` | No authentication required |
-| `jwt` | Login once in setup then inject token for every request |
+| `jwt` | JWT token - single step or multi-step (2FA/OTP) |
+| `apiKey` | API Key in header or query parameter |
+| `basic` | Basic HTTP authentication (username:password) |
+
+#### JWT Authentication
+
+```typescript
+// Single-step JWT
+auth: {
+  type: 'jwt',
+  loginEndpoint: '/auth/login',
+  payload: { username: 'test', password: 'secret' },
+  tokenPath: 'data.accessToken',
+}
+
+// Multi-step JWT (2FA/OTP)
+auth: {
+  type: 'jwt',
+  steps: [
+    { name: 'Sign In', endpoint: '/auth/sign-in', payload: {...}, extract: {...} },
+    { name: 'Verify OTP', endpoint: '/auth/verify', payload: (ctx) => ({...}) },
+  ],
+  tokenPath: 'data.accessToken',
+}
+```
+
+#### API Key Authentication
+
+```typescript
+// API Key in Header
+auth: {
+  type: 'apiKey',
+  key: 'X-API-Key',
+  value: 'your-api-key',
+  in: 'header',
+}
+
+// API Key in Query String
+auth: {
+  type: 'apiKey',
+  key: 'api_key',
+  value: 'your-api-key',
+  in: 'query',  // → ?api_key=your-api-key
+}
+```
+
+#### Basic Authentication
+
+```typescript
+auth: {
+  type: 'basic',
+  username: 'loadtest',
+  password: 'secret123',
+}
+```
 
 ### 3. HTTP Wrapper
 
-- Wrap http methods (GET, POST, PUT, DELETE)
-- Auto-inject auth header
+- Wrap http methods (GET, POST, PUT, PATCH, DELETE)
+- Auto-inject auth header (JWT, API Key, Basic)
 - Auto-collect metrics for every request
+- **Request Context** for chaining requests
+- **Dynamic URL parameters** (path params, query params)
 
 ### 4. Scenario Runner
 
@@ -213,6 +284,80 @@ Configure via config:
 |----------|----------|
 | `simple` | Call endpoints sequentially, repeatedly |
 | `flow` | Simulate user journey (login → browse → purchase) |
+
+### 5. Dynamic URL Parameters
+
+```typescript
+// Path Parameters: /users/{userId} → /users/123
+{
+  name: 'Get User',
+  method: 'GET',
+  url: '/api/users/{userId}',
+  pathParams: {
+    userId: '123',                      // Static
+    // userId: () => randomId(),        // Dynamic function
+    // userId: (ctx) => ctx.createdId,  // From context
+  },
+}
+
+// Query Parameters: ?page=1&limit=10
+{
+  name: 'List Products',
+  method: 'GET',
+  url: '/api/products',
+  queryParams: {
+    page: '1',
+    limit: '10',
+    category: () => randomCategory(),  // Dynamic
+  },
+}
+
+// Dynamic URL Function
+{
+  name: 'Get Order',
+  method: 'GET',
+  url: (ctx) => `/api/orders/${ctx.orderId}`,
+}
+```
+
+### 6. Request Context (Chain Requests)
+
+Extract values from response and use in subsequent requests:
+
+```typescript
+// Step 1: Create and extract ID
+{
+  name: 'Create Task',
+  method: 'POST',
+  url: '/api/tasks',
+  body: () => ({ title: 'Test Task' }),
+  extract: {
+    taskId: 'data.id',        // ctx.taskId = response.data.id
+    taskTitle: 'data.title',  // ctx.taskTitle = response.data.title
+  },
+}
+
+// Step 2: Use extracted values
+{
+  name: 'Update Task',
+  method: 'PUT',
+  url: (ctx) => `/api/tasks/${ctx.taskId}`,
+  body: (ctx) => ({
+    title: ctx.taskTitle,
+    status: 'completed',
+  }),
+}
+
+// Step 3: Delete using context
+{
+  name: 'Delete Task',
+  method: 'DELETE',
+  url: '/api/tasks/{taskId}',
+  pathParams: {
+    taskId: (ctx) => String(ctx.taskId),
+  },
+}
+```
 
 ---
 
